@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dota 2 Spy</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="top-bar">
+            <div class="brand">
+                <span class="brand-badge">DOTA 2</span>
+                <h1>SPY ROOM</h1>
+            </div>
+            <div id="room-header-info" class="room-header-info hidden">
+                <div class="room-code-box">
+                    <span class="muted-label">Кімната:</span>
+                    <strong id="header-room-code">-----</strong>
+                    <button id="copy-link-btn" class="btn btn-small btn-outline" type="button">Копіювати посилання</button>
+                </div>
+                <button id="leave-room-btn" class="btn btn-small btn-danger-outline" type="button">Вийти</button>
+            </div>
+        </header>
+
+        <div id="error-banner" class="error-banner hidden"></div>
+
+        <!-- Вхід / Створення кімнати -->
+        <section id="view-auth" class="card auth-card">
+            <h2>Dota 2 Spy</h2>
+            <p class="subtitle">
+                Створіть кімнату або підключіться за кодом. Усі гравці в кімнаті отримають випадкову шмотку з Dota 2, а один випадковий гравець стане шпигуном і не отримає нічого.
+            </p>
+
+            <div class="form-group">
+                <label for="player-name-input">Ваш нікнейм</label>
+                <input type="text" id="player-name-input" maxlength="24" placeholder="Введіть ім'я..." autocomplete="off">
+            </div>
+
+            <div class="auth-split">
+                <div class="auth-box">
+                    <h3>Нова кімната</h3>
+                    <button id="create-room-btn" class="btn btn-primary btn-full" type="button">Створити кімнату</button>
+                </div>
+
+                <div class="auth-divider">АБО</div>
+
+                <div class="auth-box">
+                    <h3>Увійти за кодом</h3>
+                    <div class="form-group">
+                        <input type="text" id="room-code-input" maxlength="8" placeholder="Код кімнати" autocomplete="off">
+                    </div>
+                    <button id="join-room-btn" class="btn btn-secondary btn-full" type="button">Підключитися</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Екран кімнати -->
+        <main id="view-room" class="room-grid hidden">
+            <div class="main-stage">
+                <section class="card main-card">
+                    <div class="card-top-row">
+                        <span id="round-badge" class="badge">Очікування роздачі</span>
+                        <button id="toggle-secret-btn" class="btn btn-small btn-outline hidden" type="button">Приховати картку</button>
+                    </div>
+
+                    <!-- Поки ще не роздано -->
+                    <div id="waiting-state" class="center-box">
+                        <h2>Очікуємо початку раунду</h2>
+                        <p class="muted-text">Коли всі підключаться до кімнати, хост натискає кнопку роздачі предмета.</p>
+                    </div>
+
+                    <!-- Картка гравця після роздачі -->
+                    <div id="dealt-state" class="hidden">
+                        <!-- Якщо випала шмотка -->
+                        <div id="item-view" class="item-display hidden">
+                            <img id="item-icon" src="" alt="Dota 2 Item" class="item-img">
+                            <h2 id="item-name" class="item-title">---</h2>
+                        </div>
+
+                        <!-- Якщо випав шпигун -->
+                        <div id="spy-view" class="spy-display hidden">
+                            <div class="spy-box">ШПИГУН</div>
+                            <h2 class="spy-title">У вас немає предмета</h2>
+                        </div>
+                    </div>
+
+                    <!-- Кнопка хоста -->
+                    <div id="host-controls" class="host-controls hidden">
+                        <button id="deal-btn" class="btn btn-primary btn-large btn-full" type="button">Роздати предмет (Новий раунд)</button>
+                    </div>
+                </section>
+            </div>
+
+            <aside class="sidebar">
+                <div class="card players-card">
+                    <div class="players-header">
+                        <h3>Гравці в кімнаті</h3>
+                        <span id="players-count-badge" class="badge">0</span>
+                    </div>
+                    <ul id="players-list" class="players-list"></ul>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
