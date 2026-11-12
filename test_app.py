@@ -55,3 +55,28 @@ def test_deal_random_item_to_all_except_one() -> None:
 
         assert len(spies) == 1
         assert len(citizens) == 4
+
+
+def test_change_name_in_lobby() -> None:
+    ROOMS.clear()
+    create_res = client.post("/api/rooms/create", json={"name": "OldName", "player_id": "p1"})
+    assert create_res.status_code == 200
+    room_code = create_res.json()["room_code"]
+
+    with client.websocket_connect(f"/ws/{room_code}/p1") as ws:
+        init_state = ws.receive_json()
+        assert init_state["players"][0]["name"] == "OldName"
+
+        # Change name via WebSocket
+        ws.send_json({"action": "change_name", "name": "NewName"})
+        updated_state = ws.receive_json()
+        assert updated_state["players"][0]["name"] == "NewName"
+
+    # Change name via HTTP action
+    action_res = client.post(
+        f"/api/rooms/{room_code}/action",
+        json={"player_id": "p1", "action": "change_name", "name": "HttpName"},
+    )
+    assert action_res.status_code == 200
+    assert action_res.json()["players"][0]["name"] == "HttpName"
+    assert ROOMS[room_code].players["p1"].name == "HttpName"

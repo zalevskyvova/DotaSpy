@@ -174,6 +174,7 @@ class RoomActionRequest(BaseModel):
     player_id: str
     action: str
     target_id: str | None = None
+    name: str | None = None
 
 
 def ensure_player_in_room(room: Room, player_id: str, name: str | None = None) -> Player:
@@ -248,6 +249,13 @@ async def room_http_action(room_code: str, req: RoomActionRequest) -> JSONRespon
 
     ensure_player_in_room(room, req.player_id)
 
+    if req.action == "change_name":
+        new_name = (req.name or "").strip()[:24]
+        if new_name and req.player_id in room.players:
+            room.players[req.player_id].name = new_name
+            await broadcast_room(room)
+        return JSONResponse(room.state_for_player(req.player_id))
+
     if req.action == "deal_round":
         if req.player_id != room.host_id:
             return JSONResponse(
@@ -301,6 +309,13 @@ async def room_websocket(websocket: WebSocket, room_code: str, player_id: str) -
 
             if action == "ping":
                 await websocket.send_json({"type": "pong"})
+                continue
+
+            if action == "change_name":
+                new_name = (data.get("name") or "").strip()[:24]
+                if new_name and player_id in room.players:
+                    room.players[player_id].name = new_name
+                    await broadcast_room(room)
                 continue
 
             if action == "deal_round":

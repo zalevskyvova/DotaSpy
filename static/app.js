@@ -117,6 +117,7 @@ function enterRoom(roomCode, playerId, playerName) {
     el("view-room").classList.remove("hidden");
     el("room-header-info").classList.remove("hidden");
     el("header-room-code").textContent = roomCode;
+    el("lobby-name-input").value = playerName;
 
     connectWebSocket();
     startPollingFallback();
@@ -356,6 +357,19 @@ function renderPlayersList(state) {
     }
 }
 
+function updateLobbyName() {
+    const raw = el("lobby-name-input").value.trim();
+    if (!raw) {
+        showError("Ім'я не може бути порожнім.");
+        return;
+    }
+    const newName = raw.slice(0, 24);
+    activePlayerName = newName;
+    localStorage.setItem(STORAGE_NAME_KEY, newName);
+    el("player-name-input").value = newName;
+    sendAction({ action: "change_name", name: newName });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     const savedName = localStorage.getItem(STORAGE_NAME_KEY);
     if (savedName) {
@@ -375,6 +389,13 @@ document.addEventListener("DOMContentLoaded", () => {
     el("create-room-btn").addEventListener("click", createRoom);
     el("join-room-btn").addEventListener("click", () => joinRoom());
     el("leave-room-btn").addEventListener("click", leaveRoom);
+    el("change-name-btn").addEventListener("click", updateLobbyName);
+    el("lobby-name-input").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            updateLobbyName();
+        }
+    });
 
     el("copy-link-btn").addEventListener("click", async () => {
         if (!activeRoomCode) return;

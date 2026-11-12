@@ -345,6 +345,33 @@ input[type="text"]:focus {
     margin-bottom: 14px;
 }
 
+.change-name-box {
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.change-name-box label {
+    margin-bottom: 6px;
+    display: block;
+}
+
+.change-name-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.change-name-row input {
+    flex: 1;
+    padding: 7px 10px;
+    font-size: 0.9rem;
+}
+
+.change-name-row .btn {
+    white-space: nowrap;
+}
+
 .players-list {
     list-style: none;
     display: flex;
