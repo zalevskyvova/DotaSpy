@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dota 2 Spy</title>
-    <link rel="stylesheet" href="/static/style.css?v=3">
+    <link rel="stylesheet" href="/static/style.css?v=4">
 </head>
 <body>
     <div class="app-container">
@@ -72,6 +72,11 @@
 
                     <!-- Картка гравця після роздачі -->
                     <div id="dealt-state" class="hidden">
+                        <div id="first-speaker-box" class="first-speaker-box hidden">
+                            <span class="speaker-label">Першим говорить:</span>
+                            <strong id="first-speaker-name" class="speaker-name">---</strong>
+                        </div>
+
                         <!-- Якщо випала шмотка -->
                         <div id="item-view" class="item-display hidden">
                             <img id="item-icon" src="" alt="Dota 2 Item" class="item-img">
@@ -104,6 +109,6 @@
         </main>
     </div>
 
-    <script src="/static/app.js?v=3"></script>
+    <script src="/static/app.js?v=4"></script>
 </body>
 </html>

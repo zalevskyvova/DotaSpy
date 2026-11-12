@@ -394,6 +394,36 @@ input[type="text"]:focus {
     color: var(--text-muted);
 }
 
+.tag-speaker {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(52, 211, 153, 0.4);
+}
+
+.first-speaker-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(52, 211, 153, 0.35);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 18px;
+    font-size: 1rem;
+}
+
+.speaker-label {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.speaker-name {
+    color: #34d399;
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
 @media (max-width: 780px) {
     .room-grid {
         grid-template-columns: 1fr;

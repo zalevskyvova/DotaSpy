@@ -35,12 +35,15 @@ def test_deal_random_item_to_all_except_one() -> None:
         assert room.started is True
         assert room.round_number == 1
         assert room.spy_id in room.players
+        assert room.first_speaker_id in room.players
         assert room.current_item is not None
 
         spies = []
         citizens = []
         for pid in room.players:
             state = room.state_for_player(pid)
+            assert state["first_speaker_id"] == room.first_speaker_id
+            assert state["first_speaker_name"] == room.players[room.first_speaker_id].name
             if state["role"] == "spy":
                 assert state["item"] is None
                 spies.append(pid)

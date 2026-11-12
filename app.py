@@ -36,6 +36,7 @@ class Room:
     started: bool = False
     round_number: int = 0
     spy_id: str | None = None
+    first_speaker_id: str | None = None
     current_item: DotaItem | None = None
     used_item_ids: set[str] = field(default_factory=set)
 
@@ -61,6 +62,7 @@ class Room:
             return False, "Для роздачі потрібно щонайменше 2 гравці в кімнаті."
 
         self.spy_id = random.choice(pool_ids)
+        self.first_speaker_id = random.choice(pool_ids)
 
         available = [item for item in DOTA_ITEMS if item["id"] not in self.used_item_ids]
         if not available:
@@ -94,6 +96,10 @@ class Room:
             for p in self.players.values()
         ]
 
+        first_speaker_name = None
+        if self.started and self.first_speaker_id and self.first_speaker_id in self.players:
+            first_speaker_name = self.players[self.first_speaker_id].name
+
         return {
             "type": "state",
             "room_code": self.code,
@@ -103,6 +109,8 @@ class Room:
             "round_number": self.round_number,
             "role": role,
             "item": item_payload,
+            "first_speaker_id": self.first_speaker_id if self.started else None,
+            "first_speaker_name": first_speaker_name,
             "players": players_payload,
         }
 

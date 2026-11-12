@@ -286,6 +286,14 @@ function renderState(state) {
         el("dealt-state").classList.toggle("hidden", secretHidden);
         el("toggle-secret-btn").textContent = secretHidden ? "Показати картку" : "Приховати картку";
 
+        if (state.first_speaker_name) {
+            const isFirst = state.first_speaker_id === state.you_id;
+            el("first-speaker-name").textContent = isFirst ? "Ви" : state.first_speaker_name;
+            el("first-speaker-box").classList.remove("hidden");
+        } else {
+            el("first-speaker-box").classList.add("hidden");
+        }
+
         if (state.role === "spy") {
             el("item-view").classList.add("hidden");
             el("spy-view").classList.remove("hidden");
@@ -319,6 +327,9 @@ function renderPlayersList(state) {
         const tags = [];
         if (p.is_host) tags.push('<span class="tag tag-host">HOST</span>');
         if (p.id === state.you_id) tags.push('<span class="tag tag-you">ВИ</span>');
+        if (state.first_speaker_id && p.id === state.first_speaker_id) {
+            tags.push('<span class="tag tag-speaker">1-Й ГОВОРИТЬ</span>');
+        }
         if (!p.connected) tags.push('<span class="tag tag-offline">OFFLINE</span>');
 
         li.innerHTML = `
