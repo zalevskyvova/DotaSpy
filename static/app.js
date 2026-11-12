@@ -11,6 +11,7 @@ let activePlayerName = "";
 let pingTimer = null;
 let pollTimer = null;
 let reconnectTimer = null;
+let lastRenderedRound = 0;
 
 const el = (id) => document.getElementById(id);
 
@@ -254,6 +255,14 @@ async function sendAction(payload) {
 }
 
 function renderState(state) {
+    if (!state) return;
+
+    // Запобігаємо зникненню картки, якщо запит випадково потрапив на несинхронізований процес
+    if (!state.started && currentState && currentState.started && currentState.round_number > 0) {
+        renderPlayersList(state);
+        return;
+    }
+
     const isHost = state.you_id === state.host_id;
     el("host-controls").classList.toggle("hidden", !isHost);
 
@@ -264,6 +273,11 @@ function renderState(state) {
         el("toggle-secret-btn").classList.add("hidden");
         el("deal-btn").textContent = "Роздати предмет";
     } else {
+        if (state.round_number !== lastRenderedRound) {
+            lastRenderedRound = state.round_number;
+            secretHidden = false;
+        }
+
         el("round-badge").textContent = `Раунд #${state.round_number}`;
         el("waiting-state").classList.add("hidden");
         el("toggle-secret-btn").classList.remove("hidden");
@@ -278,8 +292,14 @@ function renderState(state) {
         } else if (state.item) {
             el("spy-view").classList.add("hidden");
             el("item-view").classList.remove("hidden");
-            el("item-icon").src = state.item.icon;
-            el("item-name").textContent = state.item.name;
+
+            const imgEl = el("item-icon");
+            if (imgEl.getAttribute("src") !== state.item.icon) {
+                imgEl.src = state.item.icon;
+            }
+            if (el("item-name").textContent !== state.item.name) {
+                el("item-name").textContent = state.item.name;
+            }
         }
     }
 
