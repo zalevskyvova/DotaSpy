@@ -393,9 +393,30 @@ input[type="text"]:focus {
 .player-name-line {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     font-weight: 600;
     font-size: 0.95rem;
+}
+
+.turn-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    color: var(--accent-gold);
+    border: 1px solid var(--border-color);
+    font-size: 0.78rem;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.turn-num-1 {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: #34d399;
+    color: #34d399;
 }
 
 .tag {

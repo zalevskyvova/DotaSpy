@@ -36,6 +36,8 @@ def test_deal_random_item_to_all_except_one() -> None:
         assert room.round_number == 1
         assert room.spy_id in room.players
         assert room.first_speaker_id in room.players
+        assert len(room.speaker_order) == 5
+        assert room.speaker_order[0] == room.first_speaker_id
         assert room.current_item is not None
 
         spies = []
@@ -44,6 +46,11 @@ def test_deal_random_item_to_all_except_one() -> None:
             state = room.state_for_player(pid)
             assert state["first_speaker_id"] == room.first_speaker_id
             assert state["first_speaker_name"] == room.players[room.first_speaker_id].name
+            assert state["speaker_order"] == room.speaker_order
+
+            turns = [p["turn"] for p in state["players"]]
+            assert sorted(turns) == [1, 2, 3, 4, 5]
+
             if state["role"] == "spy":
                 assert state["item"] is None
                 spies.append(pid)

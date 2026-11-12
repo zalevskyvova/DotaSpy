@@ -321,20 +321,30 @@ function renderPlayersList(state) {
     el("players-count-badge").textContent = state.players.length;
     const isHost = state.you_id === state.host_id;
 
-    for (const p of state.players) {
+    // Сортуємо за чергою ходу, якщо раунд активний
+    const sortedPlayers = [...state.players].sort((a, b) => {
+        if (a.turn && b.turn) return a.turn - b.turn;
+        if (a.turn) return -1;
+        if (b.turn) return 1;
+        return 0;
+    });
+
+    for (const p of sortedPlayers) {
         const li = document.createElement("li");
         li.className = "player-row";
 
         const tags = [];
         if (p.is_host) tags.push('<span class="tag tag-host">HOST</span>');
         if (p.id === state.you_id) tags.push('<span class="tag tag-you">ВИ</span>');
-        if (state.first_speaker_id && p.id === state.first_speaker_id) {
-            tags.push('<span class="tag tag-speaker">1-Й ГОВОРИТЬ</span>');
-        }
         if (!p.connected) tags.push('<span class="tag tag-offline">OFFLINE</span>');
+
+        const turnBadge = p.turn
+            ? `<span class="turn-num turn-num-${p.turn}" title="Черга ходу: ${p.turn}">${p.turn}</span>`
+            : '';
 
         li.innerHTML = `
             <div class="player-name-line">
+                ${turnBadge}
                 <span>${p.name}</span>
                 ${tags.join(" ")}
             </div>

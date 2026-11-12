@@ -37,6 +37,7 @@ class Room:
     round_number: int = 0
     spy_id: str | None = None
     first_speaker_id: str | None = None
+    speaker_order: list[str] = field(default_factory=list)
     current_item: DotaItem | None = None
     used_item_ids: set[str] = field(default_factory=set)
 
@@ -62,7 +63,10 @@ class Room:
             return False, "Для роздачі потрібно щонайменше 2 гравці в кімнаті."
 
         self.spy_id = random.choice(pool_ids)
-        self.first_speaker_id = random.choice(pool_ids)
+        order = list(pool_ids)
+        random.shuffle(order)
+        self.speaker_order = order
+        self.first_speaker_id = order[0]
 
         available = [item for item in DOTA_ITEMS if item["id"] not in self.used_item_ids]
         if not available:
@@ -86,12 +90,15 @@ class Room:
             if not is_spy:
                 item_payload = self.current_item
 
+        turn_map = {pid: idx + 1 for idx, pid in enumerate(self.speaker_order)} if self.started else {}
+
         players_payload = [
             {
                 "id": p.id,
                 "name": p.name,
                 "is_host": p.is_host,
                 "connected": p.connected,
+                "turn": turn_map.get(p.id),
             }
             for p in self.players.values()
         ]
@@ -111,6 +118,7 @@ class Room:
             "item": item_payload,
             "first_speaker_id": self.first_speaker_id if self.started else None,
             "first_speaker_name": first_speaker_name,
+            "speaker_order": self.speaker_order if self.started else [],
             "players": players_payload,
         }
 
