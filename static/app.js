@@ -5,6 +5,12 @@ const STORAGE_ROOM_KEY = "dota_spy_room_code";
 let socket = null;
 let currentState = null;
 let secretHidden = false;
+let activeRoomCode = null;
+let activePlayerId = null;
+let activePlayerName = "";
+let pingTimer = null;
+let pollTimer = null;
+let reconnectTimer = null;
 
 const el = (id) => document.getElementById(id);
 
@@ -17,6 +23,14 @@ function showError(msg) {
     }, 4500);
 }
 
+function cleanRoomInput(raw) {
+    let text = (raw || "").trim();
+    if (text.includes("room=")) {
+        text = text.split("room=").pop().split("&")[0];
+    }
+    return text.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+}
+
 function getOrCreatePlayerId() {
     let pid = localStorage.getItem(STORAGE_PID_KEY);
     if (!pid) {
@@ -26,56 +40,71 @@ function getOrCreatePlayerId() {
     return pid;
 }
 
-async function createRoom() {
-    const nameInput = el("player-name-input").value.trim();
-    if (!nameInput) {
-        showError("Введіть свій нікнейм.");
-        return;
+function getOrCreateName() {
+    let name = el("player-name-input").value.trim();
+    if (!name) {
+        name = localStorage.getItem(STORAGE_NAME_KEY) || "";
     }
-    localStorage.setItem(STORAGE_NAME_KEY, nameInput);
+    if (!name) {
+        name = "Гравець " + Math.floor(10 + Math.random() * 90);
+        el("player-name-input").value = name;
+    }
+    localStorage.setItem(STORAGE_NAME_KEY, name);
+    return name;
+}
+
+async function createRoom() {
+    const name = getOrCreateName();
     const pid = getOrCreatePlayerId();
 
-    const res = await fetch("/api/rooms/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: nameInput, player_id: pid }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-        showError(data.error || "Помилка створення кімнати");
-        return;
+    try {
+        const res = await fetch("/api/rooms/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, player_id: pid }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            showError(data.error || "Помилка створення кімнати");
+            return;
+        }
+        enterRoom(data.room_code, data.player_id, name);
+    } catch {
+        showError("Не вдалося з'єднатися з сервером.");
     }
-    enterRoom(data.room_code, data.player_id);
 }
 
 async function joinRoom(codeOverride) {
-    const nameInput = el("player-name-input").value.trim();
-    const roomCode = (codeOverride || el("room-code-input").value).trim().toUpperCase();
-    if (!nameInput) {
-        showError("Введіть свій нікнейм для входу в кімнату.");
-        return;
-    }
+    const roomCode = cleanRoomInput(codeOverride || el("room-code-input").value);
     if (!roomCode) {
-        showError("Введіть код кімнати.");
+        showError("Введіть код кімнати або вставте посилання.");
         return;
     }
-    localStorage.setItem(STORAGE_NAME_KEY, nameInput);
+    const name = getOrCreateName();
     const pid = getOrCreatePlayerId();
 
-    const res = await fetch("/api/rooms/join", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ room_code: roomCode, name: nameInput, player_id: pid }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-        showError(data.error || "Не вдалося увійти в кімнату");
-        return;
+    try {
+        const res = await fetch("/api/rooms/join", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ room_code: roomCode, name, player_id: pid }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            showError(data.error || "Не вдалося увійти в кімнату");
+            return;
+        }
+        enterRoom(data.room_code, data.player_id, name);
+    } catch {
+        showError("Не вдалося підключитися до кімнати.");
     }
-    enterRoom(data.room_code, data.player_id);
 }
 
-function enterRoom(roomCode, playerId) {
+function enterRoom(roomCode, playerId, playerName) {
+    activeRoomCode = roomCode;
+    activePlayerId = playerId;
+    activePlayerName = playerName;
+
     localStorage.setItem(STORAGE_ROOM_KEY, roomCode);
     localStorage.setItem(STORAGE_PID_KEY, playerId);
 
@@ -88,11 +117,15 @@ function enterRoom(roomCode, playerId) {
     el("room-header-info").classList.remove("hidden");
     el("header-room-code").textContent = roomCode;
 
-    connectWebSocket(roomCode, playerId);
+    connectWebSocket();
+    startPollingFallback();
 }
 
 function leaveRoom() {
+    activeRoomCode = null;
+    stopTimers();
     if (socket) {
+        socket.onclose = null;
         socket.close();
         socket = null;
     }
@@ -106,13 +139,67 @@ function leaveRoom() {
     el("view-auth").classList.remove("hidden");
 }
 
-function connectWebSocket(roomCode, playerId) {
+function stopTimers() {
+    if (pingTimer) {
+        clearInterval(pingTimer);
+        pingTimer = null;
+    }
+    if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+    }
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+    }
+}
+
+function startPollingFallback() {
+    if (pollTimer) clearInterval(pollTimer);
+    fetchRoomState();
+    pollTimer = setInterval(fetchRoomState, 2500);
+}
+
+async function fetchRoomState() {
+    if (!activeRoomCode || !activePlayerId) return;
+    try {
+        const q = new URLSearchParams({
+            player_id: activePlayerId,
+            name: activePlayerName || "",
+        });
+        const res = await fetch(`/api/rooms/${activeRoomCode}/state?${q.toString()}`);
+        if (res.ok) {
+            const state = await res.json();
+            if (state && state.type === "state") {
+                currentState = state;
+                renderState(state);
+            }
+        }
+    } catch {
+        // Ignore transient network errors during background poll
+    }
+}
+
+function connectWebSocket() {
+    if (!activeRoomCode || !activePlayerId) return;
     if (socket) {
+        socket.onclose = null;
         socket.close();
     }
+    if (pingTimer) clearInterval(pingTimer);
+
     const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${proto}//${window.location.host}/ws/${roomCode}/${playerId}`;
+    const q = new URLSearchParams({ name: activePlayerName || "" });
+    const wsUrl = `${proto}//${window.location.host}/ws/${activeRoomCode}/${activePlayerId}?${q.toString()}`;
     socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => {
+        pingTimer = setInterval(() => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ action: "ping" }));
+            }
+        }, 20000);
+    };
 
     socket.onmessage = (event) => {
         const msg = JSON.parse(event.data);
@@ -130,15 +217,39 @@ function connectWebSocket(roomCode, playerId) {
         if (ev.code === 4001) {
             showError("Хост видалив вас із кімнати.");
             leaveRoom();
-        } else if (ev.code === 4004) {
-            leaveRoom();
+            return;
+        }
+        if (activeRoomCode) {
+            reconnectTimer = setTimeout(connectWebSocket, 2000);
         }
     };
 }
 
-function sendAction(payload) {
+async function sendAction(payload) {
     if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify(payload));
+        return;
+    }
+    if (!activeRoomCode || !activePlayerId) return;
+    try {
+        const res = await fetch(`/api/rooms/${activeRoomCode}/action`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                player_id: activePlayerId,
+                action: payload.action,
+                target_id: payload.target_id || null,
+            }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            showError(data.error || "Помилка виконання дії");
+        } else if (data.type === "state") {
+            currentState = data;
+            renderState(data);
+        }
+    } catch {
+        showError("Помилка зв'язку із сервером.");
     }
 }
 
@@ -223,9 +334,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const params = new URLSearchParams(window.location.search);
     const roomParam = params.get("room");
     if (roomParam) {
-        el("room-code-input").value = roomParam.toUpperCase();
-        if (savedName) {
-            joinRoom(roomParam);
+        const cleaned = cleanRoomInput(roomParam);
+        el("room-code-input").value = cleaned;
+        if (cleaned) {
+            joinRoom(cleaned);
         }
     }
 
@@ -234,8 +346,8 @@ document.addEventListener("DOMContentLoaded", () => {
     el("leave-room-btn").addEventListener("click", leaveRoom);
 
     el("copy-link-btn").addEventListener("click", async () => {
-        if (!currentState) return;
-        const link = `${window.location.origin}/?room=${currentState.room_code}`;
+        if (!activeRoomCode) return;
+        const link = `${window.location.origin}/?room=${activeRoomCode}`;
         try {
             await navigator.clipboard.writeText(link);
             el("copy-link-btn").textContent = "Скопійовано!";

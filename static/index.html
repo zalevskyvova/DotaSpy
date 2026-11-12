@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dota 2 Spy</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=2">
 </head>
 <body>
     <div class="app-container">
@@ -46,9 +46,9 @@
                 <div class="auth-divider">АБО</div>
 
                 <div class="auth-box">
-                    <h3>Увійти за кодом</h3>
+                    <h3>Увійти за кодом або посиланням</h3>
                     <div class="form-group">
-                        <input type="text" id="room-code-input" maxlength="8" placeholder="Код кімнати" autocomplete="off">
+                        <input type="text" id="room-code-input" maxlength="120" placeholder="Код або посилання на кімнату" autocomplete="off">
                     </div>
                     <button id="join-room-btn" class="btn btn-secondary btn-full" type="button">Підключитися</button>
                 </div>
@@ -104,6 +104,6 @@
         </main>
     </div>
 
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=2"></script>
 </body>
 </html>
